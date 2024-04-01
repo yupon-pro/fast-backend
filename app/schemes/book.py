@@ -26,7 +26,7 @@ class ModifyBook(BaseBook):
     deadline: Union[datetime, None] = Field(default=None)
     title: Union[str, None] = Field(default=None)
     comment: Union[str, None] = Field(default=None)
-    to_archive: Union[bool, None] = Field(default=None)
+    to_archive: Union[bool, None] = Field(default=None,example="false")
 
     class Config:
         orm_mode = True

@@ -17,16 +17,18 @@ async def create_active_book(db: AsyncSession, book_create:book_scheme.CreateBoo
                             SELECT *
                             FROM book
                             WHERE :title in (SELECT DISTINCT title
-                                            FROM book)
+                                            FROM book
+                                            WHERE book.user_id = :user_id)
                             UNION
                             SELECT *
                             FROM archived_book
                             WHERE :title in (SELECT DISTINCT title
-                                            FROM archived_book)
+                                            FROM archived_book
+                                            WHERE archived_book.user_id = :user_id)
                             LIMIT 1;
                         """)
     
-    result:CursorResult = await db.execute(preparation,{"title":book_create.title})
+    result:CursorResult = await db.execute(preparation,{"title":book_create.title, "user_id":book_create.user_id})
 
     if result.first() is not None:
         raise error.DuplicateError("The book has been already enrolled.")
@@ -52,42 +54,45 @@ async def create_active_book(db: AsyncSession, book_create:book_scheme.CreateBoo
     return book_scheme.ResponseBook(**book_info)
 
 
-async def get_active_books(db:AsyncSession) -> List[book_scheme.ResponseBook]:
+async def get_active_books(db:AsyncSession, user_id:int) -> List[book_scheme.ResponseBook]:
     statement = text("""
                         SELECT book.*, user.username, user.email
                         FROM book
                         JOIN user
                         ON book.user_id = user.id
-                        WHERE to_archive = false;
+                        WHERE to_archive = false
+                        AND book.user_id = :user_id;
                     """)
 
-    result:CursorResult = await db.execute(statement)
+    result:CursorResult = await db.execute(statement,{"user_id":user_id})
 
     return [book_scheme.ResponseBook(**dict(zip(result.keys(),book_info))) for book_info in result.all()]
 
 
-async def get_active_books_more_than_rest_ratio(db:AsyncSession, rest_ration:float) -> List[book_scheme.ResponseBook]:
+async def get_active_books_more_than_rest_ratio(db:AsyncSession, rest_ration:float, user_id:int) -> List[book_scheme.ResponseBook]:
     statement = text("""
                         SELECT book.*, user.username, user.email
                         FROM book
                         JOIN user
                         ON book.user_id = user.id
-                        WHERE read_page / total_page >= :ratio;
+                        WHERE read_page / total_page >= :ratio
+                        AND book.user_id = :user_id;
                     """)
-    result:CursorResult = await db.execute(statement,{"ratio":rest_ration})
+    result:CursorResult = await db.execute(statement,{"ratio":rest_ration, "user_id":user_id})
 
     return [book_scheme.ResponseBook(**dict(zip(result.keys(),book_info))) for book_info in result.all()]
 
 
-async def get_active_books_less_than_rest_ratio(db:AsyncSession, rest_ration:float) -> List[book_scheme.ResponseBook]:
+async def get_active_books_less_than_rest_ratio(db:AsyncSession, rest_ration:float, user_id:int) -> List[book_scheme.ResponseBook]:
     statement = text("""
                         SELECT book.*, user.username, user.email
                         FROM book
                         JOIN user
                         ON book.user_id = user.id
-                        WHERE read_page / total_page <= :ratio;
+                        WHERE read_page / total_page <= :ratio
+                        AND book.user_id = :user_id;
                     """)
-    result:CursorResult = await db.execute(statement,{"ratio":rest_ration})
+    result:CursorResult = await db.execute(statement,{"ratio":rest_ration, "user_id":user_id})
     books = result.all()
     logger.info()
     return [book_scheme.ResponseBook(**dict(zip(result.keys(),book_info))) for book_info in books]
@@ -104,7 +109,11 @@ async def get_active_book(db:AsyncSession, book_id:int) -> book_scheme.ResponseB
     
     result:CursorResult = await db.execute(statement,{"id":book_id})
 
-    return book_scheme.ResponseBook(**dict(zip(result.keys(),result.one())))
+    book = result.first()
+    if book is None:
+        raise error.NoObjectError("There is no book you want.")
+
+    return book_scheme.ResponseBook(**dict(zip(result.keys(),book)))
 
 
 async def edit_active_book(db:AsyncSession,book_edit:book_scheme.ModifyBook, book_id:int) -> book_scheme.ResponseBook:
@@ -137,12 +146,17 @@ async def edit_active_book(db:AsyncSession,book_edit:book_scheme.ModifyBook, boo
 
 
 async def to_archive_book(db:AsyncSession, book_id:int):
-    result = await db.execute(text("SELECT * FROM book WHERE id = :id;"),{"id":book_id})  
+    result = await db.execute(text("SELECT * FROM book WHERE id = :id;"),{"id":book_id}) 
+
+    tentative_book = result.first() 
+    if tentative_book is None:
+        raise error.NoObjectError("There is no book you want.") 
+
+    book = book_scheme.DataBaseBook(**dict(zip(result.keys(),tentative_book)))  
+    book.to_archive = True
+
     await db.execute(text("DELETE FROM book WHERE id = :id;"),{"id":book_id})
     await db.commit()
-
-    book = book_scheme.DataBaseBook(**dict(zip(result.keys(),result.one())))  
-    book.to_archive = True
     
     archived_book = archived_book_model.ArchivedBook(**book.dict())
     db.add(archived_book)

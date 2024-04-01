@@ -6,6 +6,7 @@ from logging import getLogger
 
 from app.schemes import user as user_scheme
 from app.schemes import token as token_scheme
+from app.schemes import res_msg as msg_scheme
 from app.cruds import auth as user_crud
 from app.utils import pwd
 from app.utils import jwt
@@ -24,7 +25,7 @@ async def user_account(user:user_scheme.ResponseUser = Depends(jwt.get_current_u
     return user
 
 
-@router.patch("/api/auth/me", response_model=Union[user_scheme.ResponseUser, object], dependencies=[Depends(bearer_scheme)])
+@router.patch("/api/auth/me", response_model=Union[user_scheme.ResponseUser, msg_scheme.Successful], dependencies=[Depends(bearer_scheme)])
 async def edit_account(user:user_scheme.ModifyUser, user_id:int = Depends(jwt.get_current_user_id), db:AsyncSession = Depends(get_db)):
     user = await user_crud.edit_user(db,user,user_id)
     if not user:
@@ -38,13 +39,13 @@ async def edit_account_without_pass(password:str = Body(), user_id:int = Body(),
     return await user_crud.reset_pwd_user(db,user_id,hashed_password)
 
 
-@router.delete("/api/auth/me",status_code=204, dependencies=[Depends(bearer_scheme)])
+@router.delete("/api/auth/me", status_code=204, dependencies=[Depends(bearer_scheme)])
 async def remove_account(user_id:int = Depends(jwt.get_current_user_id), db:AsyncSession = Depends(get_db)):
     await user_crud.delete_user(db,user_id)
-    return {"message":"Your account has been successfully eliminated."}
+    return
 
 
-@router.post("/api/auth/registration",response_model=Union[user_scheme.ResponseUser,object], status_code=201)
+@router.post("/api/auth/registration",response_model=Union[user_scheme.ResponseUser,msg_scheme.Erroneous], status_code=201)
 async def create_account(account_body: user_scheme.SignUpUser, response:Response, db:AsyncSession = Depends(get_db)):
     account_body.password = pwd.get_password_hash(account_body.password)
     try:
@@ -60,7 +61,7 @@ async def create_account(account_body: user_scheme.SignUpUser, response:Response
         return {"error":"We failed to create your account"}
     
 
-@router.post("/api/auth/login",response_model=Union[token_scheme.Token,Any])
+@router.post("/api/auth/login",response_model=Union[token_scheme.Token,msg_scheme.Erroneous])
 async def sign_account(account_body: user_scheme.SignInUser, response:Response, db:AsyncSession = Depends(get_db)):
     user = await jwt.authenticate_user(account_body,db)
 
