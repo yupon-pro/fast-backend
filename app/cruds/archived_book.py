@@ -43,10 +43,10 @@ async def get_archived_book(db:AsyncSession, archived_book_id:int, user_id:int) 
 
 async def to_activate_book(db:AsyncSession, archived_book_id:int, user_id:int):
     result:CursorResult = await db.execute(text("""
-                                                SELECT * 
-                                                FROM archived_book 
-                                                WHERE id = :id 
-                                                AND archived_book.user_id = :user_id
+                                                    SELECT * 
+                                                    FROM archived_book 
+                                                    WHERE id = :id 
+                                                    AND archived_book.user_id = :user_id
                                                 """),{
                                                 "id":archived_book_id, 
                                                 "user_id":user_id
