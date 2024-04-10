@@ -1,5 +1,5 @@
-from typing import Union, Optional
-from datetime import datetime, timedelta, timezone
+from typing import Union
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.schemes import user
@@ -16,10 +16,7 @@ class BaseBook(BaseModel):
 class EnrollBook(BaseBook):
     pass
 
-    class Config:
-        orm_mode = True
-
-class ModifyBook(BaseBook):
+class ModifyBook(BaseModel):
     whole_pages: Union[int, None] = Field(default=None,ge=1)
     read_pages: Union[int, None] = Field(default=None)
     created_at: Union[datetime, None] = Field(default=None)
@@ -28,20 +25,11 @@ class ModifyBook(BaseBook):
     comment: Union[str, None] = Field(default=None)
     to_archive: Union[bool, None] = Field(default=None,example="false")
 
-    class Config:
-        orm_mode = True
-
 class CreateBook(BaseBook):
     user_id: int = Field(ge=1)
 
-    class Config:
-        orm_mode = True
-
 class DataBaseBook(CreateBook):
     id: int = Field(ge=1)
-
-    class Config:
-        orm_mode = True
 
 class ResponseBook(DataBaseBook,user.ConcatUserFromBook):
     pass

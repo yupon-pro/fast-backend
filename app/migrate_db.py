@@ -3,13 +3,14 @@ from sqlalchemy.engine.url import URL
 from app.models.user import Base as UserBase
 from app.models.book import Base as BookBase
 from app.models.archived_book import Base as ArchivedBookBase
+from os import environ
 
 url = URL.create(
-    drivername="mysql+pymysql",
-    username="yupon",
-    password="yupon-db-2024",
+    drivername="mysql+aiomysql",
+    username=environ.get('MYSQL_USER'),
+    password=environ.get('MYSQL_PASSWORD'),
     host="db",
-    database="fast",
+    database=environ.get('MYSQL_DATABASE'),
     query={"charset":"utf8"}
 )
 

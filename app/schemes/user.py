@@ -16,29 +16,16 @@ class FullInfoUser(ServerBaseUser):
 class SignInUser(ServerBaseUser):
     pass
 
-    class Config:
-        orm_mode = True
-
-
 class SignUpUser(FullInfoUser):
     pass
-
-    class Config:
-        orm_mode = True
 
 class ModifyUser(BaseModel):
     email: Union[EmailStr,None] = Field(default=None)
     username: Union[str,None] = Field(default=None, min_length=4, max_length=10)
     password: Union[str, None] = Field(default=None)
 
-    class Config:
-        orm_mode = True
-
 class CreateUser(FullInfoUser):
     pass
-
-    class Config:
-        orm_mode = True
 
 class DatabaseUser(FullInfoUser):
     id:int = Field(

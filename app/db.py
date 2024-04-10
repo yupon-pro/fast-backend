@@ -1,13 +1,16 @@
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
+from os import environ
+
+
 
 url = URL.create(
     drivername="mysql+aiomysql",
-    username="yupon",
-    password="yupon-db-2024",
+    username=environ.get('MYSQL_USER'),
+    password=environ.get('MYSQL_PASSWORD'),
     host="db",
-    database="fast",
+    database=environ.get('MYSQL_DATABASE'),
     query={"charset":"utf8"}
 )
 

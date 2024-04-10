@@ -55,10 +55,10 @@ async def book(book_id:int,response:Response,db:AsyncSession = Depends(get_db)):
 
 @router.patch("/{book_id}",response_model=Union[book_scheme.ResponseBook,msg_scheme.Successful])
 async def edit_book(book_id:int, book_body:book_scheme.ModifyBook,db:AsyncSession = Depends(get_db)):
-    user = await book_crud.edit_active_book(db, book_body, book_id)
-    if not user:
+    book = await book_crud.edit_active_book(db, book_body, book_id)
+    if not book:
         return {"message":"No Alteration."}
-    return user
+    return book
 
 
 @router.patch("/{book_id}/to_archive",status_code=204)
